@@ -10,9 +10,6 @@ build step - it is just static HTML + a bit of JavaScript.
 
 Once GitHub Pages is enabled (see below), it will be at:
 
-```
-https://<your-username>.github.io/<repo-name>/
-```
 
 Because the app file is named `index.html`, it loads automatically at the site
 root - no extra path needed.
