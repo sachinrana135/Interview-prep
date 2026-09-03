@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Staff Engineer Prep Tracker</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  .track-sd  { border-left-color:#2563eb; }
+  .track-dsa { border-left-color:#16a34a; }
+  .track-st  { border-left-color:#9333ea; }
+  input[type=checkbox]{ accent-color:#4f46e5; width:1.1rem; height:1.1rem; cursor:pointer; }
+  .done > .lbl label { text-decoration:line-through; opacity:.55; }
+  details > summary { cursor:pointer; list-style:none; }
+  details > summary::-webkit-details-marker { display:none; }
+  details > summary::before { content:"+ sources"; }
+  details[open] > summary::before { content:"- sources"; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+<div class="max-w-6xl mx-auto p-4 sm:p-8">
+
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-slate-900">Staff Backend Engineer - 8-Week Prep Tracker</h1>
+    <p class="text-slate-500 mt-1">10 hrs/week &middot; 6h System Design &middot; 2.5h DSA &middot; 1.5h Staff skills. Progress saved locally in this browser.</p>
+  </header>
+
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+    <div class="bg-white rounded-xl shadow p-5 lg:col-span-2">
+      <h2 class="font-semibold text-slate-700 mb-3">Progress by track</h2>
+      <div id="trackBars" class="space-y-4"></div>
+      <div class="mt-5 pt-4 border-t">
+        <div class="flex justify-between text-sm font-medium mb-1">
+          <span>Overall completion</span><span id="overallPct">0%</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
+          <div id="overallBar" class="h-4 bg-indigo-600 transition-all duration-500" style="width:0%"></div>
+        </div>
+        <p id="overallCount" class="text-xs text-slate-500 mt-1"></p>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-5">
+      <h2 class="font-semibold text-slate-700 mb-3">Time allocation (80h)</h2>
+      <div style="position:relative;height:220px;"><canvas id="donut"></canvas></div>
+    </div>
+  </section>
+
+  <div class="flex flex-wrap gap-3 items-center mb-6">
+    <button id="collapseAll" class="text-sm px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300">Collapse all</button>
+    <button id="expandAll" class="text-sm px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300">Expand all</button>
+    <button id="exportBtn" class="text-sm px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 ml-auto">Export progress</button>
+    <button id="importBtn" class="text-sm px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200">Import progress</button>
+    <input id="importFile" type="file" accept="application/json,.json" class="hidden" />
+    <button id="resetAll" class="text-sm px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200">Reset all progress</button>
+  </div>
+
+  <div id="weeks" class="space-y-4"></div>
+
+  <footer class="text-center text-xs text-slate-400 mt-10">
+    Local file - nothing is uploaded. Clearing browser data will erase your progress. Video items = channel + exact title, search to open.
+  </footer>
+</div>
+
+<script>
+const TRACKS = {
+  sd:  { name:"System Design",  cls:"track-sd",  bar:"bg-blue-600",   text:"text-blue-700"  },
+  dsa: { name:"DSA",            cls:"track-dsa", bar:"bg-green-600",  text:"text-green-700" },
+  st:  { name:"Staff skills",   cls:"track-st",  bar:"bg-purple-600", text:"text-purple-700"}
+};
+// helpers to keep data terse: L=link resource, V=video (channel+title), S=site/text
+const L=(n,u)=>({n,u}); const V=n=>({n,v:true}); const S=n=>({n});
+// item: [label, [resources...]]
+const I=(t,r=[])=>({t,r});
+
+const WEEKS = [
+ { n:1, title:"Foundations - speak the language of scale", items:{
+   sd:[
+     I("Estimation drills: latency numbers, QPS/storage/bandwidth math (5 drills)",[
+       L("Interactive 'Latency Numbers' (Colin Scott)","https://colin-scott.github.io/personal_website/research/interactive_latency.html"),
+       L("system-design-primer: back-of-the-envelope","https://github.com/donnemartin/system-design-primer#back-of-the-envelope-calculations"),
+       V("Gaurav Sen (YouTube) - 'Capacity Estimation in Systems Design'")]),
+     I("Theory: CAP/PACELC, consistency models, SLA/SLO/SLI + error budgets",[
+       L("system-design-primer: CAP","https://github.com/donnemartin/system-design-primer#consistency-patterns"),
+       V("ByteByteGo (YouTube) - 'CAP Theorem Simplified'"),
+       L("Jepsen consistency model map","https://jepsen.io/consistency")]),
+     I("Sketch generic web-scale architecture from memory 3x",[
+       V("ByteByteGo (YouTube) - '20 System Design Concepts Explained in 10 Minutes'"),
+       L("karanpratapsingh/system-design (free guide)","https://github.com/karanpratapsingh/system-design")]),
+     I("Deliverable: 1-page latency + estimation cheat sheet",[])
+   ],
+   dsa:[ I("Arrays/strings/hashing: 6-8 problems (Two Sum, Group Anagrams, Longest Consecutive)",[
+       L("NeetCode roadmap","https://neetcode.io/roadmap"),
+       V("NeetCode (YouTube) - 'Arrays & Hashing' playlist")]) ],
+   st:[ I("Read Staff archetypes; write which fits you + 2 examples (GTA backfill)",[
+       L("StaffEng - Staff archetypes","https://staffeng.com/guides/staff-archetypes/")]) ]
+ }},
+ { n:2, title:"Storage & data modeling", items:{
+   sd:[
+     I("SQL vs NoSQL decision framework (access patterns first)",[
+       V("ByteByteGo (YouTube) - 'SQL vs NoSQL Explained'"),
+       L("system-design-primer: databases","https://github.com/donnemartin/system-design-primer#database")]),
+     I("Indexing internals: B-tree vs LSM, read/write amplification, composite indexes",[
+       V("Hussein Nasser (YouTube) - 'Database Indexing Explained'"),
+       V("Hussein Nasser (YouTube) - 'B-Tree vs LSM Tree'")]),
+     I("Partitioning/sharding + replication models, hotspots, rebalancing",[
+       V("Gaurav Sen (YouTube) - 'Database Sharding'"),
+       L("system-design-primer: sharding & replication","https://github.com/donnemartin/system-design-primer#sharding")]),
+     I("Deliverable: reverse-engineer your Cosmos partition key + 100x failure mode",[
+       L("Azure docs: Cosmos partitioning","https://learn.microsoft.com/azure/cosmos-db/partitioning-overview")])
+   ],
+   dsa:[ I("Two pointers + sliding window: 6-8 problems (3Sum, Container, Longest Substring)",[
+       V("NeetCode (YouTube) - 'Two Pointers' & 'Sliding Window' playlists")]) ],
+   st:[ I("Study design-doc/RFC culture; start reusable design-doc template",[
+       L("Design Docs at Google (industrialempathy)","https://www.industrialempathy.com/posts/design-docs-at-google/")]) ]
+ }},
+ { n:3, title:"Caching, load balancing & distribution primitives", items:{
+   sd:[
+     I("Caching strategies + invalidation + stampede; map onto your Redis usage",[
+       V("Hussein Nasser (YouTube) - 'Caching Strategies'"),
+       L("AWS Builders' Library: caching challenges","https://aws.amazon.com/builders-library/caching-challenges-and-strategies/")]),
+     I("Consistent hashing deep-dive (ring, virtual nodes, why > mod-N)",[
+       V("Gaurav Sen (YouTube) - 'Consistent Hashing'"),
+       L("ByteByteGo blog: consistent hashing","https://blog.bytebytego.com/p/consistent-hashing")]),
+     I("Load balancing (L4/L7, algorithms, health checks) + CDN/edge",[
+       V("ByteByteGo (YouTube) - 'Load Balancing Algorithms'"),
+       L("Cloudflare Learning: what is a CDN","https://www.cloudflare.com/learning/cdn/what-is-a-cdn/")]),
+     I("Deliverable: design a distributed cache tier with failure behavior",[])
+   ],
+   dsa:[ I("Trees & recursion: 6-8 problems (traversals, LCA, validate BST, level-order)",[
+       V("NeetCode (YouTube) - 'Trees' playlist")]) ],
+   st:[ I("Technical vision / 6-pagers; draft half-page vision for a messy area you own",[
+       L("Will Larson: writing a technical vision","https://lethain.com/eng-strategies/")]) ]
+ }},
+ { n:4, title:"Async, messaging & event-driven architecture", items:{
+   sd:[
+     I("Queues vs logs vs pub/sub; delivery semantics, ordering, backpressure, DLQs",[
+       V("Hussein Nasser (YouTube) - 'Message Queues'"),
+       L("AWS Builders' Library: timeouts, retries, backoff","https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/")]),
+     I("Kafka deep-dive: partitions, consumer groups, offsets, compaction, ISR, EOS",[
+       L("Confluent Kafka 101 (free course)","https://developer.confluent.io/courses/apache-kafka/events/"),
+       V("Hussein Nasser (YouTube) - 'Apache Kafka Internals'")]),
+     I("Event sourcing, CQRS, outbox, choreography vs orchestration + failure modes",[
+       L("Martin Fowler: CQRS","https://martinfowler.com/bliki/CQRS.html"),
+       L("microservices.io: Saga & Outbox patterns","https://microservices.io/patterns/data/saga.html")]),
+     I("Deliverable: redesign a sync flow you own as event-driven (pros AND cons)",[])
+   ],
+   dsa:[ I("Graphs BFS/DFS: 6-8 problems (islands, clone graph, course schedule/topo sort)",[
+       V("NeetCode (YouTube) - 'Graphs' playlist")]) ],
+   st:[ I("Influence without authority; write up a time you changed direction you didn't own",[
+       L("StaffEng: guides & stories","https://staffeng.com/guides/"),
+       L("Will Larson (lethain): influence","https://lethain.com/")]) ]
+ }},
+ { n:5, title:"APIs, protection & FIRST full design", items:{
+   sd:[
+     I("API design: REST/gRPC/GraphQL, versioning, pagination, idempotency keys, gateways",[
+       V("ByteByteGo (YouTube) - 'REST vs GraphQL vs gRPC'"),
+       L("Google API Design Guide","https://cloud.google.com/apis/design")]),
+     I("Protection: rate limiting algos, circuit breakers, bulkheads, retries+jitter",[
+       V("ByteByteGo (YouTube) - 'Rate Limiting Algorithms'"),
+       L("Martin Fowler: Circuit Breaker","https://martinfowler.com/bliki/CircuitBreaker.html")]),
+     I("FULL DESIGN #1: URL shortener OR rate limiter, full ritual, 45min timed",[
+       V("ByteByteGo (YouTube) - 'Design a URL Shortener'"),
+       L("system-design-primer: design examples","https://github.com/donnemartin/system-design-primer#system-design-interview-questions-with-solutions")]),
+     I("Deliverable: written design doc for Design #1 using your template",[])
+   ],
+   dsa:[ I("Heaps/intervals/greedy: (Merge Intervals, Meeting Rooms II, Top K, Task Scheduler)",[
+       V("NeetCode (YouTube) - 'Heap / Priority Queue' & 'Intervals' playlists")]) ],
+   st:[ I("Driving alignment: RFC etiquette, disagree-and-commit, one/two-way-door decisions",[
+       L("Will Larson: making decisions","https://lethain.com/making-decisions/")]) ]
+ }},
+ { n:6, title:"Distributed consistency & hard theory", items:{
+   sd:[
+     I("Distributed txns: 2PC, saga pattern, compensating txns, idempotency backbone",[
+       L("microservices.io: Saga pattern","https://microservices.io/patterns/data/saga.html"),
+       V("ByteByteGo (YouTube) - 'Distributed Transactions & Sagas'")]),
+     I("Consensus: Raft intuition, quorums (R+W>N), read-repair, where etcd/ZK fit",[
+       L("The Secret Lives of Data: Raft (interactive)","http://thesecretlivesofdata.com/raft/"),
+       L("Raft official + visualization","https://raft.github.io/")]),
+     I("Advanced: vector clocks, CRDTs, linearizability vs serializability",[
+       V("Martin Kleppmann (YouTube) - 'Distributed Systems' lecture series (Cambridge, free)"),
+       L("Jepsen: consistency models map","https://jepsen.io/consistency")]),
+     I("Deliverable: write a consistency & failure-model section for one design",[])
+   ],
+   dsa:[ I("Dynamic programming 1D->2D (Coin Change, LIS, Edit Distance, Knapsack)",[
+       V("NeetCode (YouTube) - '1-D DP' & '2-D DP' playlists")]) ],
+   st:[ I("Mentorship vs sponsorship; identify 1 person to actively sponsor",[
+       L("LeadDev: mentorship & sponsorship","https://leaddev.com/"),
+       L("Will Larson (lethain): growing engineers","https://lethain.com/")]) ]
+ }},
+ { n:7, title:"Mock interviews - perform under pressure", items:{
+   sd:[
+     I("MOCK #1: news/activity feed (fan-out write vs read, hot users, ranking), timed",[
+       V("ByteByteGo (YouTube) - 'Design a News Feed System'"),
+       L("system-design-primer: design Twitter timeline","https://github.com/donnemartin/system-design-primer#design-the-twitter-timeline-and-search")]),
+     I("MOCK #2: distributed job scheduler / notifications (GTA-adjacent), timed",[
+       V("ByteByteGo (YouTube) - 'Design a Notification System'"),
+       V("Jordan has no life (YouTube) - 'Distributed Job Scheduler'")]),
+     I("Do at least one mock with a peer OR record yourself",[
+       L("interviewing.io - free peer mocks","https://interviewing.io/"),
+       L("Pramp - free peer mocks","https://www.pramp.com/")]),
+     I("Deliverable: 'mistakes I made' list -> convert each to a checklist item",[])
+   ],
+   dsa:[ I("Backtracking + tries: (Subsets, Permutations, Combination Sum, Implement Trie)",[
+       V("NeetCode (YouTube) - 'Backtracking' & 'Tries' playlists")]) ],
+   st:[ I("Execution: project scoping, milestones, risk; draft a crisp status update",[
+       L("Will Larson: leading projects","https://lethain.com/")]) ]
+ }},
+ { n:8, title:"Reliability, capstone & promo package", items:{
+   sd:[
+     I("Reliability/observability: golden signals, SLOs, degradation, multi-region, canary",[
+       L("Google SRE resources (free online)","https://sre.google/resources/"),
+       V("ByteByteGo (YouTube) - 'Observability: Metrics, Logs, Traces'")]),
+     I("Security & multi-tenancy basics (PingFed/OAuth, secrets, data isolation)",[
+       L("OAuth 2.0 simplified (Aaron Parecki)","https://www.oauth.com/"),
+       L("OWASP Cheat Sheet Series","https://cheatsheetseries.owasp.org/")]),
+     I("CAPSTONE: full large-scale design of your choice, 60min + brutal self-review",[
+       V("ByteByteGo (YouTube) - system design case-study playlist"),
+       L("system-design-primer: full examples","https://github.com/donnemartin/system-design-primer#system-design-interview-questions-with-solutions")]),
+     I("Deliverable: polished capstone doc = your best writing sample",[])
+   ],
+   dsa:[ I("Mixed timed set + revisit your 2 weakest patterns (consolidate, no new material)",[
+       L("NeetCode 150 (review mode)","https://neetcode.io/practice")]) ],
+   st:[ I("Promo packet + brag doc; prep STAR answers (decision, conflict, mentoring, failure)",[
+       L("Julia Evans: brag documents","https://jvns.ca/blog/brag-documents/"),
+       L("StaffEng: getting the title","https://staffeng.com/guides/")]) ]
+ }}
+];
+
+const KEY = "staffPrepTracker.v2";
+let state = JSON.parse(localStorage.getItem(KEY) || "{}");
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+function id(w,t,i){ return `w${w}_${t}_${i}`; }
+
+const weeksEl = document.getElementById("weeks");
+WEEKS.forEach(wk=>{
+  const card = document.createElement("div");
+  card.className = "bg-white rounded-xl shadow overflow-hidden";
+  const openKey = `open_w${wk.n}`;
+  const isOpen = state[openKey] !== false;
+
+  const header = document.createElement("button");
+  header.className = "w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50";
+  header.innerHTML = `<span class="font-semibold text-slate-800"><span class="text-indigo-600">Week ${wk.n}</span> - ${wk.title}</span>
+    <span class="text-sm text-slate-400" data-wkpct="${wk.n}"></span>`;
+
+  const body = document.createElement("div");
+  body.className = "wkbody px-5 pb-5 space-y-4" + (isOpen ? "" : " hidden");
+
+  ["sd","dsa","st"].forEach(t=>{
+    const sec = document.createElement("div");
+    sec.className = `border-l-4 ${TRACKS[t].cls} pl-3`;
+    const h = document.createElement("div");
+    h.className = `text-xs font-bold uppercase tracking-wide mb-1 ${TRACKS[t].text}`;
+    h.textContent = TRACKS[t].name;
+    sec.appendChild(h);
+
+    wk.items[t].forEach((item,i)=>{
+      const itemId = id(wk.n,t,i);
+      const row = document.createElement("div");
+      row.className = "py-1" + (state[itemId] ? " done" : "");
+
+      const lblRow = document.createElement("div");
+      lblRow.className = "lbl flex items-start gap-2";
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.id = itemId; cb.checked = !!state[itemId]; cb.className = "mt-0.5";
+      const lb = document.createElement("label");
+      lb.htmlFor = itemId; lb.textContent = item.t; lb.className = "text-sm text-slate-700";
+      cb.addEventListener("change", ()=>{ state[itemId]=cb.checked; save(); row.classList.toggle("done",cb.checked); refresh(); });
+      lblRow.appendChild(cb); lblRow.appendChild(lb);
+      row.appendChild(lblRow);
+
+      if(item.r && item.r.length){
+        const det = document.createElement("details");
+        det.className = "ml-7 mt-0.5";
+        const sum = document.createElement("summary");
+        sum.className = "text-xs text-indigo-500 hover:text-indigo-700 select-none";
+        det.appendChild(sum);
+        const ul = document.createElement("ul");
+        ul.className = "mt-1 space-y-0.5";
+        item.r.forEach(r=>{
+          const li = document.createElement("li");
+          li.className = "text-xs text-slate-600";
+          if(r.u){
+            li.innerHTML = `<span class="text-slate-400">&#8226;</span> <a href="${r.u}" target="_blank" rel="noopener" class="text-blue-600 hover:underline">${r.n}</a>`;
+          } else {
+            const tag = r.v ? "&#9654;" : "&#8226;";
+            li.innerHTML = `<span class="text-slate-400">${tag}</span> ${r.n}`;
+          }
+          ul.appendChild(li);
+        });
+        det.appendChild(ul);
+        row.appendChild(det);
+      }
+      sec.appendChild(row);
+    });
+    body.appendChild(sec);
+  });
+
+  header.addEventListener("click", ()=>{
+    body.classList.toggle("hidden");
+    state[openKey] = !body.classList.contains("hidden"); save();
+  });
+  card.appendChild(header); card.appendChild(body);
+  weeksEl.appendChild(card);
+});
+
+function counts(){
+  const c = { sd:[0,0], dsa:[0,0], st:[0,0], all:[0,0] };
+  WEEKS.forEach(wk=>["sd","dsa","st"].forEach(t=>{
+    wk.items[t].forEach((_,i)=>{ c[t][1]++; c.all[1]++; if(state[id(wk.n,t,i)]){ c[t][0]++; c.all[0]++; } });
+  }));
+  return c;
+}
+function weekPct(n){
+  let done=0,total=0; const wk = WEEKS.find(w=>w.n===n);
+  ["sd","dsa","st"].forEach(t=>wk.items[t].forEach((_,i)=>{ total++; if(state[id(n,t,i)]) done++; }));
+  return total? Math.round(done/total*100):0;
+}
+
+const trackBars = document.getElementById("trackBars");
+["sd","dsa","st"].forEach(t=>{
+  trackBars.innerHTML += `
+   <div>
+     <div class="flex justify-between text-sm mb-1">
+       <span class="font-medium">${TRACKS[t].name}</span>
+       <span data-tpct="${t}" class="text-slate-500"></span>
+     </div>
+     <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+       <div data-tbar="${t}" class="h-2.5 ${TRACKS[t].bar} transition-all duration-500" style="width:0%"></div>
+     </div>
+   </div>`;
+});
+
+function refresh(){
+  const c = counts();
+  ["sd","dsa","st"].forEach(t=>{
+    const pct = c[t][1]? Math.round(c[t][0]/c[t][1]*100):0;
+    document.querySelector(`[data-tbar="${t}"]`).style.width = pct+"%";
+    document.querySelector(`[data-tpct="${t}"]`).textContent = `${c[t][0]}/${c[t][1]} (${pct}%)`;
+  });
+  const opct = c.all[1]? Math.round(c.all[0]/c.all[1]*100):0;
+  document.getElementById("overallBar").style.width = opct+"%";
+  document.getElementById("overallPct").textContent = opct+"%";
+  document.getElementById("overallCount").textContent = `${c.all[0]} of ${c.all[1]} tasks complete`;
+  WEEKS.forEach(wk=>{ const el = document.querySelector(`[data-wkpct="${wk.n}"]`); if(el) el.textContent = weekPct(wk.n)+"% done"; });
+}
+
+new Chart(document.getElementById("donut"), {
+  type:"doughnut",
+  data:{ labels:["System Design (48h)","DSA (20h)","Staff skills (12h)"],
+    datasets:[{ data:[48,20,12], backgroundColor:["#2563eb","#16a34a","#9333ea"], borderWidth:2, borderColor:"#fff" }] },
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ position:"bottom", labels:{ boxWidth:12, font:{size:11} } } } }
+});
+
+document.getElementById("collapseAll").onclick = ()=>{
+  document.querySelectorAll(".wkbody").forEach(b=>b.classList.add("hidden"));
+  WEEKS.forEach(wk=>state[`open_w${wk.n}`]=false); save();
+};
+document.getElementById("expandAll").onclick = ()=>{
+  document.querySelectorAll(".wkbody").forEach(b=>b.classList.remove("hidden"));
+  WEEKS.forEach(wk=>state[`open_w${wk.n}`]=true); save();
+};
+document.getElementById("resetAll").onclick = ()=>{
+  if(confirm("Reset ALL progress? This cannot be undone.")){ state={}; save(); location.reload(); }
+};
+
+// ---- Export / Import progress (JSON) --------------------------------------
+function download(filename, text){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type:"application/json"}));
+  a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+}
+document.getElementById("exportBtn").onclick = ()=>{
+  const payload = { version:KEY, exportedAt:new Date().toISOString(), state };
+  const day = new Date().toISOString().slice(0,10);
+  download(`staff-prep-progress-${day}.json`, JSON.stringify(payload, null, 2));
+};
+document.getElementById("importBtn").onclick = ()=>document.getElementById("importFile").click();
+document.getElementById("importFile").addEventListener("change", (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      const incoming = parsed && parsed.state ? parsed.state : parsed; // accept wrapped or raw
+      if(typeof incoming !== "object" || incoming === null) throw new Error("unexpected shape");
+      state = incoming; save();
+      alert("Progress imported. Reloading to apply.");
+      location.reload();
+    }catch(err){ alert("Import failed - not a valid progress file.\n" + err.message); }
+    finally{ e.target.value = ""; }
+  };
+  reader.readAsText(file);
+});
+
+refresh();
+</script>
+</body>
+</html>
